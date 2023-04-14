@@ -6,7 +6,6 @@ from config import BOT_TOKEN
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 import telebot
 from image_board import draw_board
-from chess import Piece
 
 BOARD = None
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -30,7 +29,6 @@ async def hello(update, context):
 
 async def start_game(update, context):
     global BOARD
-    logging.info('prikol')
     reply_keyboard = [['/quit']]
     markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False)
     await update.message.reply_text("start_game", reply_markup=markup)
@@ -43,8 +41,9 @@ async def game(update, context):
     global BOARD
     message = update.message.text.split()
     if BOARD:
-        BOARD.move(message[0], message[1])
-        await update.message.reply_text('aaaa')
+        move_chess = BOARD.move(message[0], message[1])
+        draw_board(BOARD.board)
+        await update.message.reply_photo('data/result.png', caption=move_chess)
         return 2
     else:
         await update.message.reply_text('bbbb')
