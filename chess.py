@@ -32,7 +32,7 @@ class Board:
                         self.board[new_pos2[0]][new_pos2[1]] = self.board[new_pos1[0]][new_pos1[1]]
                         self.board[new_pos1[0]][new_pos1[1]] = None
                         return 0
-                return self.board[new_pos1[0]][new_pos1[1]].move_to(self.board, new_pos1, new_pos2)
+                    return self.board[new_pos1[0]][new_pos1[1]].move_to(self.board, new_pos1, new_pos2)
         return 'хдд'
 
 
