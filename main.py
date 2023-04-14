@@ -31,9 +31,10 @@ async def start_game(update, context):
     global BOARD
     reply_keyboard = [['/quit']]
     markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False)
-    await update.message.reply_text("start_game", reply_markup=markup)
+    await update.message.reply_text("начинаю игру", reply_markup=markup)
     BOARD = chess.Board()
-
+    draw_board(BOARD.board)
+    await update.message.reply_photo('data/result.png')
     return 2
 
 
@@ -43,7 +44,8 @@ async def game(update, context):
     if BOARD:
         move_chess = BOARD.move(message[0], message[1])
         draw_board(BOARD.board)
-        await update.message.reply_photo('data/result.png', caption=move_chess)
+        await update.message.reply_photo('data/result.png', caption=(move_chess if move_chess != 0
+                                                                     else f'{message[0]} -> {message[1]}'))
         return 2
     else:
         await update.message.reply_text('bbbb')
