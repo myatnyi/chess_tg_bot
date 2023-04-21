@@ -1,3 +1,6 @@
+import copy
+
+
 class Board:
     def __init__(self):
         self.board = []
@@ -48,18 +51,31 @@ class Piece:
                 return 'там уже стоит союзник'
         return 0
 
+    def kings_check(self, brd, pos1, pos2):
+        board = copy.deepcopy(brd)
+        board[pos2[0]][pos2[1]] = board[pos1[0]][pos1[1]]
+        board[pos1[0]][pos1[1]] = None
+        for y in range(len(board)):
+            for x in range(len(board[0])):
+                if board[y][x].__class__.__name__ == 'King' and board[y][x].team == self.team:
+                    if board[y][x].is_in_danger(board, (y, x)) != 0:
+                        return 'шах ' + self.team
+        return 0
+
 
 class Pawn(Piece):
     def __init__(self, team):
         super().__init__(team)
 
-    def move_to(self, board, pos1, pos2):
+    def move_to(self, board, pos1, pos2, kings_check=True):
         if self.general_check(board, pos1, pos2):
             return self.general_check(board, pos1, pos2)
         if (self.team == 'w' and pos1[0] - pos2[0] == 1) or (self.team == 'b' and pos2[0] - pos1[0] == 1):
-            if board[pos2[0]][pos2[1]] and abs(pos2[1] - pos1[1]) == 1:
-                return 0
-            elif (not board[pos2[0]][pos2[1]]) and pos2[1] - pos1[1] == 0:
+            if (board[pos2[0]][pos2[1]] and abs(pos2[1] - pos1[1]) == 1) or \
+                    ((not board[pos2[0]][pos2[1]]) and pos2[1] - pos1[1] == 0):
+                if kings_check:
+                    if self.kings_check(board, pos1, pos2):
+                        return self.kings_check(board, pos1, pos2)
                 return 0
         return 'пешки не могут так ходить'
 
@@ -68,7 +84,7 @@ class Rook(Piece):
     def __init__(self, team):
         super().__init__(team)
 
-    def move_to(self, board, pos1, pos2):
+    def move_to(self, board, pos1, pos2, kings_check=True):
         if self.general_check(board, pos1, pos2):
             return self.general_check(board, pos1, pos2)
         if pos2[0] == pos1[0] and pos2[1] != pos2[0] or pos2[0] != pos1[0] and pos2[1] == pos2[0]:
@@ -80,18 +96,24 @@ class Rook(Piece):
                 if any([board[pos1[0]][pos1[1] + i * ((pos2[1] - pos1[1]) / abs(pos2[1] - pos1[1]))]
                         for i in range(abs(pos2[1] - pos1[1]))]):
                     return 'ладьи так не ходят........'
+            if kings_check:
+                if self.kings_check(board, pos1, pos2):
+                    return self.kings_check(board, pos1, pos2)
             return 0
-        return pos2[1] == pos2[0]
+        return 'ладьи так не ходят........'
 
 
 class Knight(Piece):
     def __init__(self, team):
         super().__init__(team)
 
-    def move_to(self, board, pos1, pos2):
+    def move_to(self, board, pos1, pos2, kings_check=True):
         if self.general_check(board, pos1, pos2):
             return self.general_check(board, pos1, pos2)
         if [abs(pos2[0] - pos1[0]), abs(pos2[1] - pos1[1])] in [[1, 2], [2, 1]]:
+            if kings_check:
+                if self.kings_check(board, pos1, pos2):
+                    return self.kings_check(board, pos1, pos2)
             return 0
         return 'кони так не ходят'
 
@@ -100,38 +122,48 @@ class Bishop(Piece):
     def __init__(self, team):
         super().__init__(team)
 
-    def move_to(self, board, pos1, pos2):
+    def move_to(self, board, pos1, pos2, kings_check=True):
         if self.general_check(board, pos1, pos2):
             return self.general_check(board, pos1, pos2)
-        if abs(pos2[0] - pos1[0]) == abs(pos2[1] - pos1[0]):
-            if any([board[pos1[0] + i * ((pos2[0] - pos1[0]) / abs(pos2[0] - pos1[0]))]
-                    [pos1[1] + i * ((pos2[1] - pos1[1]) / abs(pos2[1] - pos1[1]))]
-                    for i in range(abs(pos2[0] - pos1[0]))]):
-                return 'увы слоны так не ходят к сожалению и несчастью'
-        return 0
+        if abs(pos2[0] - pos1[0]) == abs(pos2[1] - pos1[1]):
+            if not any([board[int(pos1[0] + i * ((pos2[0] - pos1[0]) / abs(pos2[0] - pos1[0])))]
+                        [int(pos1[1] + i * ((pos2[1] - pos1[1]) / abs(pos2[1] - pos1[1])))]
+                        for i in range(1, int(abs(pos2[0] - pos1[0])))]):
+                if kings_check:
+                    if self.kings_check(board, pos1, pos2):
+                        return self.kings_check(board, pos1, pos2)
+                return 0
+        return 'увы слоны так не ходят к сожалению и несчастью'
 
 
 class Queen(Piece):
     def __init__(self, team):
         super().__init__(team)
 
-    def move_to(self, board, pos1, pos2):
+    def move_to(self, board, pos1, pos2, kings_check=True):
         if self.general_check(board, pos1, pos2):
             return self.general_check(board, pos1, pos2)
-        if abs(pos2[0] - pos1[0]) == abs(pos2[1] - pos1[0]):
-            if not any([board[pos1[0] + i * ((pos2[0] - pos1[0]) / abs(pos2[0] - pos1[0]))]
-                        [pos1[1] + i * ((pos2[1] - pos1[1]) / abs(pos2[1] - pos1[1]))]
-                        for i in range(abs(pos2[0] - pos1[0]))]):
+        if abs(pos2[0] - pos1[0]) == abs(pos2[1] - pos1[1]):
+            if not any([board[int(pos1[0] + i * ((pos2[0] - pos1[0]) / abs(pos2[0] - pos1[0])))]
+                        [int(pos1[1] + i * ((pos2[1] - pos1[1]) / abs(pos2[1] - pos1[1])))]
+                        for i in range(1, int(abs(pos2[0] - pos1[0])))]):
+                if kings_check:
+                    if self.kings_check(board, pos1, pos2):
+                        return self.kings_check(board, pos1, pos2)
                 return 0
         if pos2[0] == pos1[0] and pos2[1] != pos2[0] or pos2[0] != pos1[0] and pos2[1] == pos2[0]:
             if pos2[0] == pos1[0]:
-                if not any([board[pos1[0] + i * ((pos2[0] - pos1[0]) / abs(pos2[0] - pos1[0]))][pos1[1]]
-                            for i in range(abs(pos2[0] - pos1[0]))]):
-                    return 0
-            if pos2[1] == pos1[1]:
-                if not any([board[pos1[0]][pos1[1] + i * ((pos2[1] - pos1[1]) / abs(pos2[1] - pos1[1]))]
-                            for i in range(abs(pos2[1] - pos1[1]))]):
-                    return 0
+                if any([board[pos1[0] + i * ((pos2[0] - pos1[0]) / abs(pos2[0] - pos1[0]))][pos1[1]]
+                        for i in range(abs(pos2[0] - pos1[0]))]):
+                    return 'настоящие квины так бы не поступили.'
+            elif pos2[1] == pos1[1]:
+                if any([board[pos1[0]][pos1[1] + i * ((pos2[1] - pos1[1]) / abs(pos2[1] - pos1[1]))]
+                        for i in range(abs(pos2[1] - pos1[1]))]):
+                    return 'настоящие квины так бы не поступили'
+            if kings_check:
+                if self.kings_check(board, pos1, pos2):
+                    return self.kings_check(board, pos1, pos2)
+            return 0
         return 'настоящие квины так бы не поступили'
 
 
@@ -139,7 +171,7 @@ class King(Piece):
     def __init__(self, team):
         super().__init__(team)
 
-    def move_to(self, board, pos1, pos2):
+    def move_to(self, board, pos1, pos2, kings_check=True):
         if self.general_check(board, pos1, pos2):
             return self.general_check(board, pos1, pos2)
         if abs(pos2[0] - pos1[0]) in [0, 1] and abs(pos2[1] - pos1[1]) in [0, 1] \
@@ -151,6 +183,6 @@ class King(Piece):
         for y in range(len(board)):
             for x in range(len(board[0])):
                 if board[y][x] and board[y][x].team != self.team:
-                    if board[y][x].move_to(board, (y, x), pos) == 0:
-                        return 'король в опасности'
+                    if board[y][x].move_to(board, (y, x), pos, kings_check=False) == 0:
+                        return 1
         return 0
