@@ -20,13 +20,13 @@ def add_in_stats(id):
     con.commit()
     con.close()
 
+
 def get_rating(id):
     con = sqlite3.connect("dbs/stats.sqlite")
     cur = con.cursor()
     res1 = cur.execute(f"SELECT user_id, rating FROM stats").fetchmany(10)
     res2 = cur.execute(f"SELECT user_id, rating FROM stats WHERE user_id == {id}").fetchone()
     return res1, res2
-
 
 
 def add_in_queue(id):
@@ -64,6 +64,8 @@ def create_board(id):
                     for x in brd])
     con = sqlite3.connect("dbs/boards.sqlite")
     cur = con.cursor()
+    id = str(id)
+    cur.execute(f"DELETE from boards where user_id = '{id}' or user_id = '{id[:len(id) // 2] + id[len(id) // 2:]}'")
     cur.execute(f"INSERT INTO boards(user_id, board) VALUES('{id}', '{brd}')")
     con.commit()
     con.close()
@@ -123,6 +125,32 @@ def get_foe(id):
     for i in res:
         if id in (i[:len(i) // 2], i[len(i) // 2:]):
             return int(i[:len(i) // 2]) if id != i[:len(i) // 2] else int(i[len(i) // 2:])
+
+
+def is_turn(id):
+    con = sqlite3.connect("dbs/boards.sqlite")
+    cur = con.cursor()
+    res = cur.execute(f"SELECT user_id, move FROM boards").fetchall()
+    con.commit()
+    con.close()
+    id = str(id)
+    for i in res:
+        print(i)
+        if id in (i[0][:len(i[0]) // 2], i[0][len(i[0]) // 2:]):
+            if id == i[0][:len(i[0]) // 2] and i[1] == 0 or id == i[0][len(i[0]) // 2:] and i[1] == 1:
+                return True, i[1]
+            return False, i[1]
+
+
+def change_turn(id):
+    con = sqlite3.connect("dbs/boards.sqlite")
+    cur = con.cursor()
+    res = cur.execute(f"""SELECT move FROM boards 
+    where user_id = '{str(id) + str(get_foe(id))}' or user_id = '{str(get_foe(id)) + str(id)}'""").fetchone()
+    cur.execute(f"""UPDATE boards SET move = '{1 if res[0] == 0 else 0}' 
+    where user_id = '{str(id) + str(get_foe(id))}' or user_id = '{str(get_foe(id)) + str(id)}'""")
+    con.commit()
+    con.close()
 
 
 if __name__ == '__main__':
