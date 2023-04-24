@@ -6,6 +6,8 @@ from config import BOT_TOKEN
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 import telebot
 from image_board import draw_board
+import os
+import pathlib
 
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -55,7 +57,8 @@ async def find_game(update, context):
             move_chess = BOARD.move(message[0], message[1], db_parser.is_turn(update.message.chat.id)[1])
             draw_board(BOARD.board)
             if move_chess:
-                await update.message.reply_photo('data/result.png',
+                await update.message.reply_photo(os.path.join(pathlib.Path(__file__).parent.resolve(),
+                                                              'data', 'result.png'),
                                                  caption=f'*{move_chess}*',
                                                  parse_mode='MarkdownV2')
             else:
@@ -74,10 +77,12 @@ async def find_game(update, context):
                     await update.message.reply_text("На какую фигуру вы хотите поменять пешку?",
                                                     reply_markup=reply_markup)
 
-                await update.message.reply_photo('data/result.png',
+                await update.message.reply_photo(os.path.join(pathlib.Path(__file__).parent.resolve(),
+                                                              'data', 'result.png'),
                                                  caption=f'{message[0]} -> {message[1]}\n{check_kings}')
                 await context.bot.send_photo(chat_id=db_parser.get_foe(update.message.chat.id),
-                                             photo=open('data/result.png', 'rb'),
+                                             photo=open(os.path.join(pathlib.Path(__file__).parent.resolve(),
+                                                                     'data', 'result.png'), 'rb'),
                                              caption=f'Противник делает: {message[0]} -> {message[1]}\n{check_kings}')
                 db_parser.update_board(update.message.chat.id, BOARD.board)
                 db_parser.change_turn(update.message.chat.id)
@@ -133,9 +138,11 @@ async def find_game(update, context):
             BOARD = chess.Board()
             BOARD.board = db_parser.get_board(update.message.chat.id)
             draw_board(BOARD.board)
-            await update.message.reply_photo('data/result.png')
+            await update.message.reply_photo(os.path.join(pathlib.Path(__file__).parent.resolve(),
+                                                          'data', 'result.png'))
             await context.bot.send_photo(chat_id=db_parser.get_foe(update.message.chat.id),
-                                         photo=open('data/result.png', 'rb'))
+                                         photo=open(os.path.join(pathlib.Path(__file__).parent.resolve(),
+                                                                 'data', 'result.png'), 'rb'))
         else:
             db_parser.add_in_queue(update.message.chat.id)
     return 2

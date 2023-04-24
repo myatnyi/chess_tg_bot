@@ -75,7 +75,7 @@ class Board:
         for x in range(8):
             for y in range(8):
                 if self.board[x][y].__class__.__name__ == 'King':
-                    if self.board[y][x].is_in_danger(self.board, (y, x)) != 0
+                    if self.board[y][x].is_in_danger(self.board, (y, x)) != 0:
                         pos.append((x, y))
         for (kx, ky) in pos:
             for x in range(8):

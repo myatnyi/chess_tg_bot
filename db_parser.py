@@ -1,5 +1,7 @@
 import sqlite3
 import chess
+import pathlib
+import os
 
 pieces = {
     0: None,
@@ -14,7 +16,7 @@ nums = {'NoneType': 0,
 
 
 def add_in_stats(id):
-    con = sqlite3.connect("dbs/stats.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'stats.sqlite'))
     cur = con.cursor()
     cur.execute(f"INSERT OR IGNORE INTO stats(user_id) VALUES({id})")
     con.commit()
@@ -22,7 +24,7 @@ def add_in_stats(id):
 
 
 def get_rating(id):
-    con = sqlite3.connect("dbs/stats.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'stats.sqlite'))
     cur = con.cursor()
     res1 = cur.execute(f"SELECT user_id, rating FROM stats").fetchmany(10)
     res2 = cur.execute(f"SELECT user_id, rating FROM stats WHERE user_id == {id}").fetchone()
@@ -30,7 +32,7 @@ def get_rating(id):
 
 
 def add_in_queue(id):
-    con = sqlite3.connect("dbs/queue.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'queue.sqlite'))
     cur = con.cursor()
     cur.execute(f"INSERT OR IGNORE INTO queue(user_id) VALUES({id})")
     con.commit()
@@ -38,7 +40,7 @@ def add_in_queue(id):
 
 
 def delete_from_queue(id):
-    con = sqlite3.connect("dbs/queue.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'queue.sqlite'))
     cur = con.cursor()
     cur.execute(f"DELETE from queue where user_id = {id}")
     con.commit()
@@ -46,7 +48,7 @@ def delete_from_queue(id):
 
 
 def get_users_from_queue(avoid_id):
-    con = sqlite3.connect("dbs/queue.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'queue.sqlite'))
     cur = con.cursor()
     res = cur.execute(f"SELECT user_id FROM queue where user_id != {avoid_id}").fetchall()
     con.commit()
@@ -62,7 +64,7 @@ def create_board(id):
             brd.append(el)
     brd = ' '.join([str(nums[x.__class__.__name__ + ('' if x.__class__.__name__ == 'NoneType' else x.team)])
                     for x in brd])
-    con = sqlite3.connect("dbs/boards.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'boards.sqlite'))
     cur = con.cursor()
     id = str(id)
     cur.execute(f"DELETE from boards where user_id = '{id}' or user_id = '{id[:len(id) // 2] + id[len(id) // 2:]}'")
@@ -72,7 +74,7 @@ def create_board(id):
 
 
 def get_board(id):
-    con = sqlite3.connect("dbs/boards.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'boards.sqlite'))
     cur = con.cursor()
     res = cur.execute(f"""SELECT board FROM boards 
     where user_id = '{str(id) + str(get_foe(id))}' or user_id = '{str(get_foe(id)) + str(id)}'""").fetchone()[0].split()
@@ -92,7 +94,7 @@ def update_board(id, board):
             brd.append(el)
     brd = ' '.join([str(nums[x.__class__.__name__ + ('' if x.__class__.__name__ == 'NoneType' else x.team)])
                     for x in brd])
-    con = sqlite3.connect("dbs/boards.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'boards.sqlite'))
     cur = con.cursor()
     cur.execute(f"""UPDATE boards SET board = '{brd}' 
     where user_id = '{str(id) + str(get_foe(id))}' or user_id = '{str(get_foe(id)) + str(id)}'""")
@@ -101,7 +103,7 @@ def update_board(id, board):
 
 
 def user_in_game(id):
-    con = sqlite3.connect("dbs/boards.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'boards.sqlite'))
     cur = con.cursor()
     res = cur.execute(f"SELECT user_id FROM boards").fetchall()
     res = [x[0] for x in res]
@@ -115,7 +117,7 @@ def user_in_game(id):
 
 
 def get_foe(id):
-    con = sqlite3.connect("dbs/boards.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'boards.sqlite'))
     cur = con.cursor()
     res = cur.execute(f"SELECT user_id FROM boards").fetchall()
     res = [x[0] for x in res]
@@ -128,7 +130,7 @@ def get_foe(id):
 
 
 def is_turn(id):
-    con = sqlite3.connect("dbs/boards.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'boards.sqlite'))
     cur = con.cursor()
     res = cur.execute(f"SELECT user_id, move FROM boards").fetchall()
     con.commit()
@@ -142,7 +144,7 @@ def is_turn(id):
 
 
 def change_turn(id):
-    con = sqlite3.connect("dbs/boards.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'boards.sqlite'))
     cur = con.cursor()
     res = cur.execute(f"""SELECT move FROM boards 
     where user_id = '{str(id) + str(get_foe(id))}' or user_id = '{str(get_foe(id)) + str(id)}'""").fetchone()
@@ -153,7 +155,7 @@ def change_turn(id):
 
 
 def close_game(id):
-    con = sqlite3.connect("dbs/boards.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'boards.sqlite'))
     cur = con.cursor()
     cur.execute(f"""DELETE FROM boards 
     where user_id = '{str(id) + str(get_foe(id))}' or user_id = '{str(get_foe(id)) + str(id)}'""")
@@ -162,7 +164,7 @@ def close_game(id):
 
 
 def change_rating(id, elo):
-    con = sqlite3.connect("dbs/stats.sqlite")
+    con = sqlite3.connect(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'stats.sqlite'))
     cur = con.cursor()
     res = cur.execute(f"""SELECT rating FROM stats where user_id = {id}""").fetchone()[0]
     cur.execute(f"""UPDATE stats SET rating = {res + elo if res + elo > 0 else 0} where user_id = {id}""")
@@ -171,4 +173,4 @@ def change_rating(id, elo):
 
 
 if __name__ == '__main__':
-    print('bepis')
+    print(os.path.join(pathlib.Path(__file__).parent.resolve(), 'dbs', 'boards.sqlite'))
