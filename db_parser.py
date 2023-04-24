@@ -135,7 +135,6 @@ def is_turn(id):
     con.close()
     id = str(id)
     for i in res:
-        print(i)
         if id in (i[0][:len(i[0]) // 2], i[0][len(i[0]) // 2:]):
             if id == i[0][:len(i[0]) // 2] and i[1] == 0 or id == i[0][len(i[0]) // 2:] and i[1] == 1:
                 return True, i[1]
@@ -149,6 +148,24 @@ def change_turn(id):
     where user_id = '{str(id) + str(get_foe(id))}' or user_id = '{str(get_foe(id)) + str(id)}'""").fetchone()
     cur.execute(f"""UPDATE boards SET move = '{1 if res[0] == 0 else 0}' 
     where user_id = '{str(id) + str(get_foe(id))}' or user_id = '{str(get_foe(id)) + str(id)}'""")
+    con.commit()
+    con.close()
+
+
+def close_game(id):
+    con = sqlite3.connect("dbs/boards.sqlite")
+    cur = con.cursor()
+    cur.execute(f"""DELETE FROM boards 
+    where user_id = '{str(id) + str(get_foe(id))}' or user_id = '{str(get_foe(id)) + str(id)}'""")
+    con.commit()
+    con.close()
+
+
+def change_rating(id, elo):
+    con = sqlite3.connect("dbs/stats.sqlite")
+    cur = con.cursor()
+    res = cur.execute(f"""SELECT rating FROM stats where user_id = {id}""").fetchone()[0]
+    cur.execute(f"""UPDATE stats SET rating = {res + elo if res + elo > 0 else 0} where user_id = {id}""")
     con.commit()
     con.close()
 
