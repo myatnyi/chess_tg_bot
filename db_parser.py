@@ -20,6 +20,14 @@ def add_in_stats(id):
     con.commit()
     con.close()
 
+def get_rating(id):
+    con = sqlite3.connect("dbs/stats.sqlite")
+    cur = con.cursor()
+    res1 = cur.execute(f"SELECT user_id, rating FROM stats").fetchmany(10)
+    res2 = cur.execute(f"SELECT user_id, rating FROM stats WHERE user_id == {id}").fetchone()
+    return res1, res2
+
+
 
 def add_in_queue(id):
     con = sqlite3.connect("dbs/queue.sqlite")

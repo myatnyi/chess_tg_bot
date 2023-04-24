@@ -89,7 +89,9 @@ async def game(update, context):
 
 
 async def rating(update, context):
-    await update.message.reply_text("rating", reply_markup=markup)
+    need_message = db_parser.get_rating(update.message.chat.id)
+    await update.message.reply_text(f"общий рейтинг:{need_message[0]}\n"
+                                    f"Ваш рейтинг:{need_message[1]}", reply_markup=markup)
     return 1
 
 
