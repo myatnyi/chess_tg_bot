@@ -21,13 +21,13 @@ quit_reply_keyboard = [['/quit']]
 markup = ReplyKeyboardMarkup(start_reply_keyboard, one_time_keyboard=False)
 
 
-value_of_pieces = { 'NoneType': 0,
-                    'Pawn': 1,
-                    'Knight': 2,
-                    'Rook': 3,
-                    'Bishop': 4,
-                    'Queen': 5,
-                    'King': 6}
+value_of_pieces = {'NoneType': 0,
+                   'Pawn': 1,
+                   'Knight': 2,
+                   'Rook': 3,
+                   'Bishop': 4,
+                   'Queen': 5,
+                   'King': 6}
 
 
 def count_results(id):
@@ -60,6 +60,20 @@ async def find_game(update, context):
                                                  parse_mode='MarkdownV2')
             else:
                 check_kings = BOARD.check_kings()
+                check_pawns = BOARD.check_pawns()
+                if check_pawns == 'w' and db_parser.is_turn(update.message.chat.id)[1] == 0 \
+                        or check_pawns == 'b' and db_parser.is_turn(update.message.chat.id)[1] == 1:
+                    keyboard = [
+                            [InlineKeyboardButton("Конь", callback_data="10")],
+                            [InlineKeyboardButton("Ладья", callback_data="11")],
+                            [InlineKeyboardButton("Слон", callback_data="12")],
+                            [InlineKeyboardButton("Королева", callback_data="13")]
+                    ]
+
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    await update.message.reply_text("На какую фигуру вы хотите поменять пешку?",
+                                                    reply_markup=reply_markup)
+
                 await update.message.reply_photo('data/result.png',
                                                  caption=f'{message[0]} -> {message[1]}\n{check_kings}')
                 await context.bot.send_photo(chat_id=db_parser.get_foe(update.message.chat.id),
@@ -67,6 +81,38 @@ async def find_game(update, context):
                                              caption=f'Противник делает: {message[0]} -> {message[1]}\n{check_kings}')
                 db_parser.update_board(update.message.chat.id, BOARD.board)
                 db_parser.change_turn(update.message.chat.id)
+                check_mate = BOARD.check_mate()
+                if check_mate:
+                    if BOARD.board[check_mate[0][0]][check_mate[0][1]].team == 'w' \
+                            and db_parser.is_turn(update.message.chat.id) == 0 \
+                            or BOARD.board[check_mate[0][0]][check_mate[0][1]].team == 'b' \
+                            and db_parser.is_turn(update.message.chat.id) == 1:
+                        res = count_results(update.message.chat.id)
+                        db_parser.change_rating(update.message.chat.id, res)
+                        db_parser.change_rating(db_parser.get_foe(update.message.chat.id), -res)
+                        markup = ReplyKeyboardMarkup(hub_reply_keyboard, one_time_keyboard=False)
+                        await update.message.reply_text(f'мат\. конгратс\.\n *+{res} очков рейтинга*',
+                                                        reply_markup=markup,
+                                                        parse_mode='MarkdownV2')
+                        await context.bot.send_message(chat_id=db_parser.get_foe(update.message.chat.id),
+                                                       text=f'мат\. увы\.\n-{res} очков рейтинга*',
+                                                       reply_markup=markup,
+                                                       parse_mode='MarkdownV2')
+                        db_parser.close_game(update.message.chat.id)
+                    else:
+                        res = count_results(update.message.chat.id)
+                        db_parser.change_rating(update.message.chat.id, -res)
+                        db_parser.change_rating(db_parser.get_foe(update.message.chat.id), res)
+                        markup = ReplyKeyboardMarkup(hub_reply_keyboard, one_time_keyboard=False)
+                        await update.message.reply_text(f'мат\. увы\.\n-{res} очков рейтинга*',
+                                                        reply_markup=markup,
+                                                        parse_mode='MarkdownV2')
+                        await context.bot.send_message(chat_id=db_parser.get_foe(update.message.chat.id),
+                                                       text=f'мат\. конгратс\.\n *+{res} очков рейтинга*',
+                                                       reply_markup=markup,
+                                                       parse_mode='MarkdownV2')
+                        db_parser.close_game(update.message.chat.id)
+                    return 1
         else:
             await update.message.reply_text('не твой ход жди пока противник походит')
     else:
@@ -98,10 +144,10 @@ async def find_game(update, context):
 async def rating(update, context):
     need_message = db_parser.get_rating(update.message.chat.id)
     markup = ReplyKeyboardMarkup(hub_reply_keyboard, one_time_keyboard=False)
-    top_10 = [f'{bot.get_chat(x[0]).first_name} - {x[1]}' if need_message[1][0] == x[0]
-              else f'{bot.get_chat(x[0]).first_name} - {x[1]}' for x in sorted(need_message[0], key=lambda x: x[1])]
+    top_10 = [(f'*{bot.get_chat(x[0]).first_name} \- {x[1]} *' if need_message[1][0] == x[0] else
+               f'{bot.get_chat(x[0]).first_name} \- {x[1]}') for x in sorted(need_message[0], key=lambda x: x[1])]
     top_10 = '\n'.join(top_10)
-    await update.message.reply_text(f"общий рейтинг:\n{top_10[:10 if len(top_10) >= 10 else len(top_10)]} \n\n"
+    await update.message.reply_text(f"общий рейтинг:\n{top_10} \n\n"
                                     f"Ваш рейтинг: {need_message[1][1]}", reply_markup=markup, parse_mode='MarkdownV2')
     return 1
 
@@ -117,7 +163,7 @@ async def quit(update, context):
         keyboard = [
             [
                 InlineKeyboardButton("Да", callback_data="1"),
-                InlineKeyboardButton("Нет", callback_data="2"),
+                InlineKeyboardButton("Нет", callback_data="2")
             ]
         ]
 
@@ -134,25 +180,53 @@ async def quit(update, context):
 async def button(update, context):
     query = update.callback_query
     await query.answer()
-    if query.data == '1':
-        res = count_results(query.from_user.id)
-        db_parser.change_rating(query.from_user.id, -res)
-        db_parser.change_rating(db_parser.get_foe(query.from_user.id), res)
-        markup = ReplyKeyboardMarkup(hub_reply_keyboard, one_time_keyboard=False)
-        print(query.from_user.id)
-        await context.bot.send_message(chat_id=query.from_user.id,
-                                       text=f'вы сдались увы\n*-{res} очков рейтинга*',
-                                       reply_markup=markup,
-                                       parse_mode='MarkdownV2')
-        await context.bot.send_message(chat_id=db_parser.get_foe(query.from_user.id),
-                                       text=f'ваш противник сдался\n*+{res} очков рейтинга*',
-                                       reply_markup=markup,
-                                       parse_mode='MarkdownV2')
-        db_parser.close_game(query.from_user.id)
-        return 1
-    if query.data == '2':
-        await query.edit_message_text(text=f"👍")
-        return 2
+    match query.data:
+        case '1':
+            res = count_results(query.from_user.id)
+            db_parser.change_rating(query.from_user.id, -res)
+            db_parser.change_rating(db_parser.get_foe(query.from_user.id), res)
+            markup = ReplyKeyboardMarkup(hub_reply_keyboard, one_time_keyboard=False)
+            await context.bot.send_message(chat_id=query.from_user.id,
+                                           text=f'вы сдались увы\n*-{res} очков рейтинга*',
+                                           reply_markup=markup,
+                                           parse_mode='MarkdownV2')
+            await context.bot.send_message(chat_id=db_parser.get_foe(query.from_user.id),
+                                           text=f'ваш противник сдался\n*+{res} очков рейтинга*',
+                                           reply_markup=markup,
+                                           parse_mode='MarkdownV2')
+            db_parser.close_game(query.from_user.id)
+            return 1
+        case '2':
+            await query.edit_message_text(text=f"👍")
+            return 2
+        case '10':
+            BOARD = chess.Board()
+            BOARD.board = db_parser.get_board(query.from_user.id)
+            BOARD.change_pawn(chess.Knight, 1 if db_parser.is_turn(query.from_user.id)[1] else 0)
+            db_parser.update_board(query.from_user.id, BOARD.board)
+            await query.edit_message_text(text=f"♟️")
+            return 2
+        case '11':
+            BOARD = chess.Board()
+            BOARD.board = db_parser.get_board(query.from_user.id)
+            BOARD.change_pawn(chess.Rook, 1 if db_parser.is_turn(query.from_user.id)[1] else 0)
+            db_parser.update_board(query.from_user.id, BOARD.board)
+            await query.edit_message_text(text=f"♟️")
+            return 2
+        case '12':
+            BOARD = chess.Board()
+            BOARD.board = db_parser.get_board(query.from_user.id)
+            BOARD.change_pawn(chess.Bishop, 1 if db_parser.is_turn(query.from_user.id)[1] else 0)
+            db_parser.update_board(query.from_user.id, BOARD.board)
+            await query.edit_message_text(text=f"♟️")
+            return 2
+        case '13':
+            BOARD = chess.Board()
+            BOARD.board = db_parser.get_board(query.from_user.id)
+            BOARD.change_pawn(chess.Queen, 1 if db_parser.is_turn(query.from_user.id)[1] else 0)
+            db_parser.update_board(query.from_user.id, BOARD.board)
+            await query.edit_message_text(text=f"♟️")
+            return 2
 
 
 async def help(update, context):

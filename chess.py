@@ -50,6 +50,48 @@ class Board:
                         res.append('шах ' + self.board[y][x].team)
         return res.join('\n')
 
+    def check_pawns(self):
+        for i in range(8):
+            if self.board[0][i].__class__.__name__ == 'Pawn':
+                return 'w'
+            if self.board[7][i].__class__.__name__ == 'Pawn':
+                return 'b'
+        return None
+
+    def change_pawn(self, piece, team):
+        if team == 'w':
+            for i in range(8):
+                if self.board[0][i].__class__.__name__ == 'Pawn':
+                    self.board[0][i] = piece
+                    break
+        if team == 'b':
+            for i in range(8):
+                if self.board[7][i].__class__.__name__ == 'Pawn':
+                    self.board[7][i] = piece
+                    break
+
+    def check_mate(self):
+        pos = []
+        for x in range(8):
+            for y in range(8):
+                if self.board[x][y].__class__.__name__ == 'King':
+                    if self.board[y][x].is_in_danger(self.board, (y, x)) != 0
+                        pos.append((x, y))
+        for (kx, ky) in pos:
+            for x in range(8):
+                for y in range(8):
+                    if self.board[kx][ky].team == self.board[x][y] and kx != x and ky != y:
+                        for nx in range(8):
+                            for ny in range(8):
+                                brd = copy.deepcopy(self.board)
+                                brd[nx][ny] = brd[x][y]
+                                brd[x][y] = None
+                                if self.board[kx][ky].is_in_danger(brd, (kx, ky)) == 0:
+                                    pos.remove((kx, ky))
+                                    return False
+        return pos
+
+
 
 class Piece:
     def __init__(self, team):
