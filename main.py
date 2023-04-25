@@ -63,6 +63,14 @@ async def find_game(update, context):
                                                  parse_mode='MarkdownV2')
             else:
                 check_kings = BOARD.check_kings()
+                await update.message.reply_photo(os.path.join(pathlib.Path(__file__).parent.resolve(),
+                                                              'data', 'result.png'),
+                                                 caption=f'{message[0]} -> {message[1]}\n{check_kings}')
+                await context.bot.send_photo(chat_id=db_parser.get_foe(update.message.chat.id),
+                                             photo=open(os.path.join(pathlib.Path(__file__).parent.resolve(),
+                                                                     'data', 'result.png'), 'rb'),
+                                             caption=f'Противник делает: {message[0]} -> {message[1]}\n{check_kings}')
+                db_parser.update_board(update.message.chat.id, BOARD.board)
                 check_pawns = BOARD.check_pawns()
                 if check_pawns == 'w' and db_parser.is_turn(update.message.chat.id)[1] == 0 \
                         or check_pawns == 'b' and db_parser.is_turn(update.message.chat.id)[1] == 1:
@@ -76,31 +84,23 @@ async def find_game(update, context):
                     reply_markup = InlineKeyboardMarkup(keyboard)
                     await update.message.reply_text("На какую фигуру вы хотите поменять пешку?",
                                                     reply_markup=reply_markup)
-
-                await update.message.reply_photo(os.path.join(pathlib.Path(__file__).parent.resolve(),
-                                                              'data', 'result.png'),
-                                                 caption=f'{message[0]} -> {message[1]}\n{check_kings}')
-                await context.bot.send_photo(chat_id=db_parser.get_foe(update.message.chat.id),
-                                             photo=open(os.path.join(pathlib.Path(__file__).parent.resolve(),
-                                                                     'data', 'result.png'), 'rb'),
-                                             caption=f'Противник делает: {message[0]} -> {message[1]}\n{check_kings}')
-                db_parser.update_board(update.message.chat.id, BOARD.board)
-                db_parser.change_turn(update.message.chat.id)
+                else:
+                    db_parser.change_turn(update.message.chat.id)
                 check_mate = BOARD.check_mate()
                 if check_mate:
                     if BOARD.board[check_mate[0][0]][check_mate[0][1]].team == 'w' \
-                            and db_parser.is_turn(update.message.chat.id) == 0 \
+                            and db_parser.is_turn(update.message.chat.id) == 1 \
                             or BOARD.board[check_mate[0][0]][check_mate[0][1]].team == 'b' \
-                            and db_parser.is_turn(update.message.chat.id) == 1:
+                            and db_parser.is_turn(update.message.chat.id) == 0:
                         res = count_results(update.message.chat.id)
                         db_parser.change_rating(update.message.chat.id, res)
                         db_parser.change_rating(db_parser.get_foe(update.message.chat.id), -res)
                         markup = ReplyKeyboardMarkup(hub_reply_keyboard, one_time_keyboard=False)
-                        await update.message.reply_text(f'мат\. конгратс\.\n *+{res} очков рейтинга*',
+                        await update.message.reply_text(f'мат\. конгратс\.\n*\+{res} очков рейтинга*',
                                                         reply_markup=markup,
                                                         parse_mode='MarkdownV2')
                         await context.bot.send_message(chat_id=db_parser.get_foe(update.message.chat.id),
-                                                       text=f'мат\. увы\.\n-{res} очков рейтинга*',
+                                                       text=f'мат\. увы\.\n*\-{res} очков рейтинга*',
                                                        reply_markup=markup,
                                                        parse_mode='MarkdownV2')
                         db_parser.close_game(update.message.chat.id)
@@ -109,12 +109,14 @@ async def find_game(update, context):
                         db_parser.change_rating(update.message.chat.id, -res)
                         db_parser.change_rating(db_parser.get_foe(update.message.chat.id), res)
                         markup = ReplyKeyboardMarkup(hub_reply_keyboard, one_time_keyboard=False)
-                        await update.message.reply_text(f'мат\. увы\.\n-{res} очков рейтинга*',
+                        keyboard = [[InlineKeyboardButton("Ок", callback_data="5")]]
+                        reply_markup = InlineKeyboardMarkup(keyboard)
+                        await update.message.reply_text(f'мат\. увы\.\n*\-{res} очков рейтинга*',
                                                         reply_markup=markup,
                                                         parse_mode='MarkdownV2')
                         await context.bot.send_message(chat_id=db_parser.get_foe(update.message.chat.id),
-                                                       text=f'мат\. конгратс\.\n *+{res} очков рейтинга*',
-                                                       reply_markup=markup,
+                                                       text=f'мат\. конгратс\.\n*\+{res} очков рейтинга*',
+                                                       reply_markup=reply_markup,
                                                        parse_mode='MarkdownV2')
                         db_parser.close_game(update.message.chat.id)
                     return 1
@@ -194,44 +196,65 @@ async def button(update, context):
             db_parser.change_rating(db_parser.get_foe(query.from_user.id), res)
             markup = ReplyKeyboardMarkup(hub_reply_keyboard, one_time_keyboard=False)
             await context.bot.send_message(chat_id=query.from_user.id,
-                                           text=f'вы сдались увы\n*-{res} очков рейтинга*',
+                                           text=f'вы сдались увы\n*\-{res} очков рейтинга*',
                                            reply_markup=markup,
                                            parse_mode='MarkdownV2')
+            keyboard = [[InlineKeyboardButton("Ок", callback_data="5")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
             await context.bot.send_message(chat_id=db_parser.get_foe(query.from_user.id),
-                                           text=f'ваш противник сдался\n*+{res} очков рейтинга*',
-                                           reply_markup=markup,
+                                           text=f'ваш противник сдался\n*\+{res} очков рейтинга*',
+                                           reply_markup=reply_markup,
                                            parse_mode='MarkdownV2')
             db_parser.close_game(query.from_user.id)
             return 1
         case '2':
             await query.edit_message_text(text=f"👍")
             return 2
+        case '5':
+            await query.edit_message_text(text=f"👍")
+            return 1
         case '10':
             BOARD = chess.Board()
             BOARD.board = db_parser.get_board(query.from_user.id)
-            BOARD.change_pawn(chess.Knight, 1 if db_parser.is_turn(query.from_user.id)[1] else 0)
+            check_pawns = BOARD.check_pawns()
+            BOARD.change_pawn(chess.Knight(check_pawns), check_pawns)
             db_parser.update_board(query.from_user.id, BOARD.board)
+            db_parser.change_turn(update.message.chat.id)
+            await context.bot.send_message(chat_id=db_parser.get_foe(query.from_user.id),
+                                           text=f'противник поменял свою пешку на коня')
             await query.edit_message_text(text=f"♟️")
             return 2
         case '11':
             BOARD = chess.Board()
             BOARD.board = db_parser.get_board(query.from_user.id)
-            BOARD.change_pawn(chess.Rook, 1 if db_parser.is_turn(query.from_user.id)[1] else 0)
+            check_pawns = BOARD.check_pawns()
+            BOARD.change_pawn(chess.Rook(check_pawns), check_pawns)
             db_parser.update_board(query.from_user.id, BOARD.board)
+            db_parser.change_turn(query.from_user.id)
+            await context.bot.send_message(chat_id=db_parser.get_foe(query.from_user.id),
+                                           text=f'противник поменял свою пешку на ладью')
             await query.edit_message_text(text=f"♟️")
             return 2
         case '12':
             BOARD = chess.Board()
             BOARD.board = db_parser.get_board(query.from_user.id)
-            BOARD.change_pawn(chess.Bishop, 1 if db_parser.is_turn(query.from_user.id)[1] else 0)
+            check_pawns = BOARD.check_pawns()
+            BOARD.change_pawn(chess.Bishop(check_pawns), check_pawns)
             db_parser.update_board(query.from_user.id, BOARD.board)
+            db_parser.change_turn(query.from_user.id)
+            await context.bot.send_message(chat_id=db_parser.get_foe(query.from_user.id),
+                                           text=f'противник поменял свою пешку на слона')
             await query.edit_message_text(text=f"♟️")
             return 2
         case '13':
             BOARD = chess.Board()
             BOARD.board = db_parser.get_board(query.from_user.id)
-            BOARD.change_pawn(chess.Queen, 1 if db_parser.is_turn(query.from_user.id)[1] else 0)
+            check_pawns = BOARD.check_pawns()
+            BOARD.change_pawn(chess.Queen(check_pawns), check_pawns)
             db_parser.update_board(query.from_user.id, BOARD.board)
+            db_parser.change_turn(query.from_user.id)
+            await context.bot.send_message(chat_id=db_parser.get_foe(query.from_user.id),
+                                           text=f'противник поменял свою пешку на королеву')
             await query.edit_message_text(text=f"♟️")
             return 2
 

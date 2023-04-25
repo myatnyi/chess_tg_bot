@@ -48,7 +48,7 @@ class Board:
                 if self.board[y][x].__class__.__name__ == 'King':
                     if self.board[y][x].is_in_danger(self.board, (y, x)) != 0:
                         res.append('шах ' + self.board[y][x].team)
-        return res.join('\n')
+        return '\n'.join(res)
 
     def check_pawns(self):
         for i in range(8):
@@ -75,22 +75,24 @@ class Board:
         for x in range(8):
             for y in range(8):
                 if self.board[x][y].__class__.__name__ == 'King':
-                    if self.board[y][x].is_in_danger(self.board, (y, x)) != 0:
+                    if self.board[x][y].is_in_danger(self.board, (x, y)) != 0:
                         pos.append((x, y))
         for (kx, ky) in pos:
             for x in range(8):
                 for y in range(8):
-                    if self.board[kx][ky].team == self.board[x][y] and kx != x and ky != y:
+                    if self.board[kx][ky].team == self.board[x][y].team:
                         for nx in range(8):
                             for ny in range(8):
                                 brd = copy.deepcopy(self.board)
-                                brd[nx][ny] = brd[x][y]
-                                brd[x][y] = None
-                                if self.board[kx][ky].is_in_danger(brd, (kx, ky)) == 0:
-                                    pos.remove((kx, ky))
-                                    return False
+                                if brd[x][y]:
+                                    if brd[x][y].move_to(brd, (x, y), (nx, ny)) == 0:
+                                        brd[nx][ny] = brd[x][y]
+                                        brd[x][y] = None
+                                        if self.board[kx][ky].is_in_danger(brd, (kx, ky)) == 0:
+                                            pos.remove((kx, ky))
+                                        if not pos:
+                                            return False
         return pos
-
 
 
 class Piece:
@@ -208,11 +210,11 @@ class Queen(Piece):
                     if self.kings_check(board, pos1, pos2):
                         return self.kings_check(board, pos1, pos2)
                 return 0
-        if pos2[0] == pos1[0] and pos2[1] != pos2[0] or pos2[0] != pos1[0] and pos2[1] == pos2[0]:
+        if pos2[0] == pos1[0] and pos2[1] != pos1[1] or pos2[0] != pos1[0] and pos2[1] == pos1[1]:
             if pos2[0] == pos1[0]:
                 if any([board[pos1[0] + i * ((pos2[0] - pos1[0]) / abs(pos2[0] - pos1[0]))][pos1[1]]
                         for i in range(abs(pos2[0] - pos1[0]))]):
-                    return 'настоящие квины так бы не поступили.'
+                    return 'настоящие квины так бы не поступили'
             elif pos2[1] == pos1[1]:
                 if any([board[pos1[0]][pos1[1] + i * ((pos2[1] - pos1[1]) / abs(pos2[1] - pos1[1]))]
                         for i in range(abs(pos2[1] - pos1[1]))]):

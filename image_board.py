@@ -20,7 +20,7 @@ def draw_board(board):
                       'Rook': Image.open(os.path.join(pathlib.Path(__file__).parent.resolve(), 'data', 'rook_b.png')),
                       'Bishop': Image.open(os.path.join(pathlib.Path(__file__).parent.resolve(),
                                                         'data', 'bishop_b.png')),
-                      'Queen': Image.open(os.path.join(pathlib.Path(__file__).parent.resolve(), 'data', 'queen_b')),
+                      'Queen': Image.open(os.path.join(pathlib.Path(__file__).parent.resolve(), 'data', 'queen_b.png')),
                       'King': Image.open(os.path.join(pathlib.Path(__file__).parent.resolve(), 'data', 'king_b.png'))}
     board_im = Image.open(os.path.join(pathlib.Path(__file__).parent.resolve(), 'data', 'board.png'))
     for y in range(len(board)):
